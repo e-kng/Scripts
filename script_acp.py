@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 # Chargement des données
 raw_data = pd.read_csv(path, sep=sep, index_col=index)
 
-# Préparation des données pour l'AF
+# Préparation des données pour l'ACP
 data = raw_data.drop(drop_col, axis=1)
 data = data.fillna(raw_data.mean()) # remplacement des valeurs manquantes par la moyenne de la variable
 X = data.values
@@ -135,8 +135,12 @@ if corr_circle == 1:
 def display_projected_data(pca, dim=(1,2)):
     # figure
     plt.figure(figsize=(8,5))
-    plt.scatter(X_projected[:,dim[0]-1], X_projected[:,dim[1]-1], 
-                c=raw_data[var_color], cmap="viridis", s=12)
+    if var_color != '':
+        plt.scatter(X_projected[:,dim[0]-1], X_projected[:,dim[1]-1], 
+                    c=raw_data[var_color], cmap="viridis", s=12)
+    else:
+        plt.scatter(X_projected[:,dim[0]-1], X_projected[:,dim[1]-1], 
+                    c="#34738C", s=12)
 
     # graph limits
     xmin, xmax, ymin, ymax = min(X_projected[:,dim[0]-1]), max(X_projected[:,dim[0]-1]), min(X_projected[:,dim[1]-1]), max(X_projected[:,dim[1]-1])
@@ -144,8 +148,9 @@ def display_projected_data(pca, dim=(1,2)):
     plt.ylim([ymin-0.5, ymax+0.5])
 
     # legends
-    cbar = plt.colorbar(pad=0.01)
-    cbar.set_label(var_color, labelpad=5)
+    if var_color != '':
+        cbar = plt.colorbar(pad=0.01)
+        cbar.set_label(var_color, labelpad=5)
     plt.xlabel('Dim{} ({}%)'.format(dim[0], round(100*pca.explained_variance_ratio_[dim[0]-1],1)), fontsize=fontsize_axes)
     plt.xticks(fontsize=fontsize_ticks)
     plt.ylabel('Dim{} ({}%)'.format(dim[1], round(100*pca.explained_variance_ratio_[dim[1]-1],1)), fontsize=fontsize_axes)
