@@ -4,11 +4,11 @@
 
 # Variables à définir
     # Import et traitement des données
-path = 'C:/Users/Dwimo/Documents/05 DATA/DataOCR/Machine Learning/ML non supervise/Data/' # dossier contenant les données
-file = 'decathlon.txt' # nom du fichier contenant les données
+path = '' # dossier contenant les données
+file = '' # nom du fichier contenant les données
 sep = '\t' # séparateur de colonnes
 index = 0 # nom ou numero de colonne
-drop_col = ['Competition', 'Rank', 'Points'] # nom des colonnes à ignorer
+drop_col = [] # nom des colonnes à ignorer
 
     # Paramètres de prétraitement des données avant CAH
 on_acp_data = 1 # CAH après réduction de dimension par ACP
