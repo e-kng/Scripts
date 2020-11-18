@@ -11,7 +11,7 @@ index = 0 # nom ou numero de colonne
 drop_col = [] # nom des colonnes à ignorer
 
     # Paramètres de prétraitement des données avant CAH
-on_acp_data = 1 # CAH après réduction de dimension par ACP
+on_acp_data = 0 # CAH après réduction de dimension par ACP
 nb_components = 2 
 on_kmeans = 0 # Prégroupement des données dans le cas de larges datasets
 nb_clust = 20 # nombre de clusters pour kmeans
