@@ -4,7 +4,8 @@
 
 # Variables à définir
     # Import et traitement des données
-path = 'C:/Users/Dwimo/Documents/05 DATA/DataOCR/Machine Learning/ML non supervise/Data/decathlon.txt' # emplacement des données
+path = 'C:/Users/Dwimo/Documents/05 DATA/DataOCR/Machine Learning/ML non supervise/Data/' # dossier contenant les données
+file = 'decathlon.txt' # nom du fichier contenant les données
 sep = '\t' # séparateur de colonnes
 index = 0 # nom ou numero de colonne
 drop_col = ['Competition', 'Rank', 'Points'] # nom des colonnes à ignorer
@@ -12,13 +13,18 @@ drop_col = ['Competition', 'Rank', 'Points'] # nom des colonnes à ignorer
     # Paramètres de prétraitement des données avant CAH
 on_acp_data = 1 # CAH après réduction de dimension par ACP
 nb_components = 2 
-on_kmeans = 1 # Prégroupement des données dans le cas de larges datasets
-nb_clust = 20 # nombre de groupes pour kmeans
+on_kmeans = 0 # Prégroupement des données dans le cas de larges datasets
+nb_clust = 20 # nombre de clusters pour kmeans
 
 # Affichage des figures (1 pour oui, 0 pour non)
-dendrogram_plot = 1 # % de variance portée par les dimensions
-display_names = 0
-nb_clusters = 5
+dendrogram_plot = 1 
+display_names = 0 # affichage des noms des observations
+
+# Extraction des résultats des clusters
+nb_clusters = 5 # nombre de clusters pour le découpage
+
+# Export des données 
+export_data = 0
 
 #########################################################################################################
 
@@ -34,7 +40,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Chargement des données
-raw_data = pd.read_csv(path, sep=sep, index_col=index)
+raw_data = pd.read_csv(path+file, sep=sep, index_col=index)
 
 # Préparation des données pour la CAH
 data = raw_data.drop(drop_col, axis=1)
@@ -101,9 +107,18 @@ if dendrogram_plot == 1:
 # Découpage des clusters
 clusters = fcluster(Z, nb_clusters, criterion='maxclust')
 
-# Concaténation des clusters au données
+# Concaténation des clusters aux données
 data_with_clusters = raw_data.copy()
-#data_with_clusters['clusters'] = clusters
 
-# en cours
-# si kmeans, récup data par km.labels_
+if on_kmeans == 0:
+    # dans le cas d'une CAH seule
+    data_with_clusters['clusters'] = clusters 
+else:
+    # dans le cas d'une CAH sur K-means
+    data_with_clusters['clusters'] = km.labels_
+    map_clusters = {x:y for x,y in zip(range(20), clusters)}
+    data_with_clusters['clusters'] = data_with_clusters['clusters'].map(map_clusters)
+
+# Export des données
+if export_data == 1:
+    data_with_clusters.to_pickle(path+file.split('.')[0]+'_clusters.pickle')
