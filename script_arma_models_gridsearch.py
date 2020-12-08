@@ -18,28 +18,20 @@ shift_2 = 12 # valeur pour 2e différenciation, None par défaut
 # Affichage des graphiques
 decomposition = False
 acf_on_raw_data = False
-acf_on_stationnary_data = True
-
-# Paramètres du modèle
-# ARIMA parameters
-p = 1 # valeur du premier PACF lag significatif
-d = 0 # 0 si absence de tendance ou tous les ACF lags (données brutes) proches de 0, sinon 1
-q = 1 # valeur du premier ACF lag significatif
-# SARIMA parameters
-P = 1 # >= 1 si l'ACF est positive au lag S, sinon 0
-D = 1 # 1 si la série présente une saisonnalité stable, sinon 0
-Q = 1 # >= 1 si l'ACF est négative au lag S, sinon 0
-S = 12 # ACF lag de la valeur absolue la plus élevée
-# d+D <= 2, P+Q <=2, p+d+q+P+D+Q <= 6
+acf_on_stationnary_data = False
+model_vs_data = True
 
 #########################################################################################################
 
 # import des librairies
+from numpy.core.arrayprint import DatetimeFormat
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.stattools import acf, pacf
+import itertools
+import warnings
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -53,11 +45,12 @@ if decomposition :
     plt.show()
 
 # Préparation des données
-data = np.log(raw_data) # log des données pour réduire le taux d'augmentation
 split_point = round(len(raw_data) * 0.7)
-train_data, test_data = data[0:split_point], data[split_point:]
+train_data, test_data = raw_data[0:split_point], raw_data[split_point:]
 
-data_shift = data.diff(periods=shift_1)
+train_data = np.log(train_data) # log des données pour réduire le taux d'augmentation
+
+data_shift = train_data.diff(periods=shift_1)
 
 if shift_2:
     data_shift = data_shift.diff(periods=shift_2)
@@ -102,8 +95,55 @@ if acf_on_stationnary_data:
     data_shift_pacf = pacf(data_shift)
     display_acf_pacf(data_shift_acf, data_shift_pacf)
 
+# Optimisation des paramètres du modèle
+def grid_search_sarima_param(data, S = shift_2, print_params = False):
+    """ Grid search for SARIMA optimal pdq and 
+    seasonal PDQ parameters """
+
+    S = S
+    p = d = q = range(0,2)
+    pdq = list(itertools.product(p,d,q))
+    seasonal_PDQ = [(x[0], x[1], x[2], S) for x in pdq]
+
+    warnings.filterwarnings("ignore") # specify to ignore warning messages
+
+    min_rmse = 10000
+    
+    for param in pdq:
+        for param_seasonal in seasonal_PDQ:
+            try:
+                model = SARIMAX(data,
+                            order=param,
+                            seasonal_order=param_seasonal,
+                            enforce_stationarity=False,
+                            enforce_invertibility=False)
+
+                results = model.fit()
+
+                k = len(test_data)
+                forecast = results.forecast(k)
+                forecast = np.exp(forecast)
+
+                rmse = np.sqrt(sum((forecast-test_data['Airpass'])**2)/len(test_data))
+
+                if rmse < min_rmse :
+                    min_rmse = round(rmse,2)
+                    optimal_aic = round(results.aic,2)
+                    optimal_pdq = param
+                    optimal_seasonal_pdq = param_seasonal
+
+            except:
+                continue
+
+    if print_params:
+        print('SARIMA{}x{} - AIC:{} - RMSE:{}'.format(optimal_pdq, optimal_seasonal_pdq, optimal_aic, min_rmse))
+
+    return optimal_pdq, optimal_seasonal_pdq, optimal_aic, min_rmse
+
+optimal_params = grid_search_sarima_param(train_data, print_params=True)
+
 # Modèle
-model = SARIMAX(train_data, order=(p,d,q), seasonal_order=(P,D,Q,S), enforce_stationarity=False, enforce_invertibility=False)
+model = SARIMAX(train_data, order=optimal_params[0], seasonal_order=optimal_params[1], enforce_stationarity=False, enforce_invertibility=False)
 model_fit = model.fit(disp=False)
 
 # Forecasting
@@ -111,11 +151,20 @@ k = len(test_data)
 forecast = model_fit.forecast(k)
 forecast = np.exp(forecast)
 
-rmse = np.sqrt(sum((forecast-test_data['Airpass'])**2)/len(test_data))
+def display_model_vs_raw(title='Model VS raw data'):
+    rmse = optimal_params[3]
+    aic = optimal_params[2]
 
-plt.figure(figsize=(10,5))
-plt.plot(forecast,'r')
-plt.plot(raw_data,'black')
-plt.title('RMSE: %.2f' % rmse)
-plt.autoscale(enable=True, axis='x', tight=True)
-plt.show()
+    plt.figure(figsize=(10,5))
+    plt.title(title, fontsize=12)
+    plt.plot(forecast,'r')
+    plt.plot(raw_data,'black')
+    plt.text(max(raw_data.index), 130, 'RMSE : {} '.format(rmse), horizontalalignment='right', size=12)
+    plt.text(max(raw_data.index), 90, 'AIC : {} '.format(aic), horizontalalignment='right', size=12)
+    plt.autoscale(enable=True, axis='x', tight=True)
+    plt.ylabel(raw_data.columns[0], fontsize=14)
+    plt.show()
+
+if model_vs_data :
+    display_model_vs_raw()
+
