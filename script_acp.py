@@ -5,18 +5,18 @@
 # Variables à définir
     # Import et traitement des données
 path = '' # emplacement des données
-sep = '\t' # séparateur de colonnes
-index = 0 # nom ou numero de colonne
-drop_col = [] # nom des colonnes à ignorer
+#sep = '\t' # séparateur de colonnes
+#index = 0 # nom ou numero de colonne
+drop_col = ['time_to_eruption', 'segment_id', 'index'] # nom des colonnes à ignorer
 
     # Paramètres de l'ACP
-nb_components = 6
+nb_components = 200
 
 # Affichage des figures (1 pour oui, 0 pour non)
 scree_plot = 1 # % de variance portée par les dimensions
-corr_circle = 1 # cercle des corrélations
-nb_dimensions = 2 # nombre de dimensions à afficher (2, 4, 6)
-data_plot = 1 # graphique des individus
+corr_circle = 0 # cercle des corrélations
+nb_dimensions = 0 # nombre de dimensions à afficher (2, 4, 6)
+data_plot = 0 # graphique des individus
 var_color = '' # choix d'une variable pour colorer les individus
 
 #########################################################################################################
@@ -29,7 +29,7 @@ from sklearn import decomposition
 import matplotlib.pyplot as plt
 
 # Chargement des données
-raw_data = pd.read_csv(path, sep=sep, index_col=index)
+raw_data = pd.read_pickle(path)
 
 # Préparation des données pour l'ACP
 data = raw_data.drop(drop_col, axis=1)
